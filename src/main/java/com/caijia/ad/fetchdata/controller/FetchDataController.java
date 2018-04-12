@@ -2,24 +2,22 @@ package com.caijia.ad.fetchdata.controller;
 
 
 import com.alibaba.fastjson.JSON;
-import com.caijia.ad.fetchdata.entities.AnalysisEntity;
-import com.caijia.ad.fetchdata.entities.AnswerEntity;
-import com.caijia.ad.fetchdata.entities.Driver;
-import com.caijia.ad.fetchdata.entities.QuestionEntity;
+import com.caijia.ad.fetchdata.entities.*;
 import com.caijia.ad.fetchdata.repository.AnalysisRepo;
 import com.caijia.ad.fetchdata.repository.AnswerRepo;
 import com.caijia.ad.fetchdata.repository.QuestionRepo;
+import com.caijia.ad.fetchdata.repository.QuestionTypeRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
 public class FetchDataController {
@@ -29,16 +27,26 @@ public class FetchDataController {
     private final AnalysisRepo analysisRepo;
 
     private final AnswerRepo answerRepo;
+    private final QuestionTypeRepo questionTypeRepo;
 
-    private static final String PREFIX = "http://mnks.jxedt.com/get_question?r=0.5811656514581165&&index=";
+    private static final String PREFIX = "http://mnks.jxedt.com/get_question?r=0.5811613514581165&&index=";
     private static final String IMAGE_PREFIX = "http://ww3.sinaimg.cn/mw600/";
     private static final String IMAGE_PREFIX1 = "http://img.58cdn.com.cn/jxedt/img/video/";
 
     @Autowired
-    public FetchDataController(QuestionRepo questionRepo, AnalysisRepo analysisRepo, AnswerRepo answerRepo) {
+    public FetchDataController(QuestionRepo questionRepo, AnalysisRepo analysisRepo,
+                               AnswerRepo answerRepo,QuestionTypeRepo questionTypeRepo) {
         this.questionRepo = questionRepo;
         this.analysisRepo = analysisRepo;
         this.answerRepo = answerRepo;
+        this.questionTypeRepo = questionTypeRepo;
+    }
+
+    @RequestMapping("/saveQuestionType")
+    public @ResponseBody List<String> saveQuestionType() {
+        List<String> s = new ArrayList<>();
+        readFile("subject1.txt");
+        return s;
     }
 
     @RequestMapping("/fetchAllData")
@@ -59,6 +67,26 @@ public class FetchDataController {
         return s;
     }
 
+    @RequestMapping("/fetchChapterType")
+    public @ResponseBody List<String> fetchChapterType() {
+        List<String> s = new ArrayList<>();
+        for (int i = 0; i < 365; i++) {
+            QuestionTypeEntity typeEntity = new QuestionTypeEntity();
+            typeEntity.setQuestionId((short) (i+1));
+            typeEntity.setQuestionType((short) 30);
+            questionTypeRepo.save(typeEntity);
+        }
+
+        for (int i = 2541; i < 2640; i++) {
+            QuestionTypeEntity typeEntity = new QuestionTypeEntity();
+            typeEntity.setQuestionId((short) (i+1));
+            typeEntity.setQuestionType((short) 30);
+            questionTypeRepo.save(typeEntity);
+        }
+
+        return s;
+    }
+
     @RequestMapping("/fetchData")
     public @ResponseBody String fetchData(@RequestParam(value = "index") int index,
                                           @RequestParam(value = "subject") int subject) {
@@ -74,7 +102,6 @@ public class FetchDataController {
             if (conn.getResponseCode() == 200) {
                 InputStream in = conn.getInputStream();
                 String result = streamToString(in);
-                System.out.println(result);
                 insertDatabase(result,subject);
             }
         } catch (Exception e) {
@@ -85,11 +112,12 @@ public class FetchDataController {
     }
 
     private void insertDatabase(String result, int subject) {
-        Driver driver = JSON.parseObject(result, Driver.class);
+        String s1 = result.replaceAll("\\\\", "");
+        Driver driver = JSON.parseObject(s1, Driver.class);
         int type = driver.getType();
 
         QuestionEntity s = new QuestionEntity();
-        s.setId((short) driver.getId());
+        s.setId(driver.getId());
         s.setQuestionText(driver.getQuestion());
         if (!StringUtils.isEmpty(driver.getSinaimg())) {
             s.setQuestionImg(IMAGE_PREFIX + driver.getSinaimg());
@@ -98,12 +126,10 @@ public class FetchDataController {
             s.setQuestionImg(IMAGE_PREFIX1 + driver.getImageurl());
         }
 
-        s.setQuestionSubject((short) subject);
-
         //分析
         AnalysisEntity analysisEntity = new AnalysisEntity();
         analysisEntity.setAnalysisText(driver.getBestanswer());
-        analysisEntity.setId((short) driver.getId());
+        analysisEntity.setId(driver.getId());
         s.addAnalysis(analysisEntity);
 
         switch (type) {
@@ -137,6 +163,31 @@ public class FetchDataController {
             answerEntity.setAnswerText(array[i]);
             answerEntity.setIsOk((short) (ta.contains(String.valueOf(i+1)) ? 1 : 0));
             s.addAnswer(answerEntity);
+        }
+    }
+
+    private void readFile(String filePath) {
+        try {
+            InputStream i = new FileInputStream(filePath);
+            String content = streamToString(i);
+            String[] types = content.split("：");
+            for (int j = 0; j < types.length; j++) {
+                Pattern pattern = Pattern.compile("get_question\\?r=.*?&index=(\\d+)");
+                Matcher matcher = pattern.matcher(types[j]);
+                while (matcher.find()) {
+                    int questionId = Integer.parseInt(matcher.group(1));
+                    int type = j + 10;
+                    System.out.println("questionId = " + questionId + "--type" + type);
+                    QuestionTypeEntity typeEntity = new QuestionTypeEntity();
+                    typeEntity.setQuestionId(questionId);
+                    typeEntity.setQuestionType(type);
+                    questionTypeRepo.save(typeEntity);
+                }
+                System.out.println("-----------------------------------------");
+            }
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         }
     }
 

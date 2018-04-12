@@ -6,11 +6,11 @@ import javax.persistence.*;
 import java.util.Objects;
 
 @Entity
-@Table(name = "answer", schema = "main", catalog = "")
+@Table(name = "answer", schema = "main")
 public class AnswerEntity {
-    private Short id;
+    private long id;
     private String answerText;
-    private Short isOk;
+    private long isOk;
 
     private QuestionEntity question;
 
@@ -28,11 +28,11 @@ public class AnswerEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "_id")
-    public Short getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(Short id) {
+    public void setId(long id) {
         this.id = id;
     }
 
@@ -48,11 +48,11 @@ public class AnswerEntity {
 
     @Basic
     @Column(name = "is_ok")
-    public Short getIsOk() {
+    public long getIsOk() {
         return isOk;
     }
 
-    public void setIsOk(Short isOk) {
+    public void setIsOk(long isOk) {
         this.isOk = isOk;
     }
 

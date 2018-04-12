@@ -7,11 +7,11 @@ import java.io.Serializable;
 import java.util.Objects;
 
 @Entity
-@Table(name = "analysis", schema = "main", catalog = "")
+@Table(name = "analysis", schema = "main")
 public class AnalysisEntity implements Serializable {
-    private Short id;
+    private long id;
     private String analysisText;
-    private Short userId;
+    private long userId;
 
     private QuestionEntity question;
 
@@ -28,11 +28,11 @@ public class AnalysisEntity implements Serializable {
 
     @Id
     @Column(name = "_id")
-    public Short getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(Short id) {
+    public void setId(long id) {
         this.id = id;
     }
 
@@ -48,11 +48,11 @@ public class AnalysisEntity implements Serializable {
 
     @Basic
     @Column(name = "user_id")
-    public Short getUserId() {
+    public long getUserId() {
         return userId;
     }
 
-    public void setUserId(Short userId) {
+    public void setUserId(long userId) {
         this.userId = userId;
     }
 

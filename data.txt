@@ -1,0 +1,93 @@
+小车： 科目一：1-973,2541-2640,10923-11078,13474-13554 科目四：1537-2740,11079-11272,13556-13594，3235583970734637095，3235583970734637097，3235583970734637098
+客车： 科目一：1-1025，2541-2640,9699-9709,13474-13554
+
+
+
+
+
+-- 判断题
+select a.question_id
+from answer a, question q
+where a.question_id = q._id
+group by a.question_id
+having count(a.answer_text) = 2;
+
+insert into question_type (question_id, question_type)
+  select
+    q._id,
+    1
+  from answer a, question q
+  where a.question_id = q._id
+  group by a.question_id
+  having count(a.answer_text) = 2;
+
+-- 文字题
+-- delete from question_type;
+insert into question_type (question_id, question_type) select
+                                                         _id,
+                                                         2
+                                                       from question
+                                                       where question_img is null or question_img = '';
+insert into question_type (question_id, question_type) values ((select _id
+                                                                from question
+                                                                where question_img is null or question_img = ''), 2);
+
+-- 图片题
+select *
+from question
+where question_img is not null or question_img != '';
+insert into question_type (question_id, question_type) select
+                                                         _id,
+                                                         3
+                                                       from question
+                                                       where question_img is not null or question_img != '';
+
+-- 单选题
+select a.question_id
+from answer a, question q
+where a.question_id = q._id
+group by a.question_id
+having sum(a.is_ok) <= 1 and count(a.answer_text) = 4;
+
+insert into question_type (question_id, question_type)
+  select
+    q._id,
+    4
+  from answer a, question q
+  where a.question_id = q._id
+  group by a.question_id
+  having sum(a.is_ok) <= 1 and count(a.answer_text) = 4;
+
+-- 多选题
+select a.question_id
+from answer a, question q
+where a.question_id = q._id
+group by a.question_id
+having sum(a.is_ok) > 1 and count(a.answer_text) = 4;
+
+insert into question_type (question_id, question_type)
+  select
+    q._id,
+    5
+  from answer a, question q
+  where a.question_id = q._id
+  group by a.question_id
+  having sum(a.is_ok) > 1 and count(a.answer_text) = 4;
+
+-- delete from analysis;
+-- delete from question;
+-- delete from answer;
+-- delete from question_type;
+select answer_text from question q, answer a where a.question_id=q._id and q._id = 92;
+-- 根据类型分组
+select
+  qt.question_type,
+  count(*) as type_count
+from question q, question_type qt
+group by question_type order by question_type asc ;
+
+-- delete from question_type;
+select * from question_type where question_type = 20;
+select * from question_type where question_type = 15 group by question_id having count(question_id) > 1;
+
+
