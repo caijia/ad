@@ -12,6 +12,7 @@ public class QuestionEntity implements Serializable {
     private long id;
     private String questionText;
     private String questionImg;
+    private long questionSubject;
     private Set<AnalysisEntity> analysisList = new HashSet<>();
     private Set<AnswerEntity> answerEntities = new HashSet<>();
 
@@ -60,6 +61,16 @@ public class QuestionEntity implements Serializable {
     }
 
     @Basic
+    @Column(name = "question_subject")
+    public long getQuestionSubject() {
+        return questionSubject;
+    }
+
+    public void setQuestionSubject(long questionSubject) {
+        this.questionSubject = questionSubject;
+    }
+
+    @Basic
     @Column(name = "question_text")
     public String getQuestionText() {
         return questionText;
@@ -86,11 +97,12 @@ public class QuestionEntity implements Serializable {
         QuestionEntity that = (QuestionEntity) o;
         return Objects.equals(id, that.id) &&
                 Objects.equals(questionText, that.questionText) &&
-                Objects.equals(questionImg, that.questionImg);
+                Objects.equals(questionImg, that.questionImg)&&
+                Objects.equals(questionSubject, that.questionSubject);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, questionText, questionImg);
+        return Objects.hash(id, questionText, questionImg,questionSubject);
     }
 }

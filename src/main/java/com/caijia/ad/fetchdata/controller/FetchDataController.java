@@ -49,21 +49,51 @@ public class FetchDataController {
         return s;
     }
 
-    @RequestMapping("/fetchAllData")
+    //1330
+    @RequestMapping("/fetchSubject1Data")
     public @ResponseBody List<String> fetchAllData() {
         List<String> s = new ArrayList<>();
-        for (int i = 0; i < 1330; i++) {
-            s.add(fetch(i + 1,1));
+        for (int i = 1; i <= 973; i++) {
+            s.add(fetch(i,1));
+        }
+
+        for (int i = 2541; i <= 2640; i++) {
+            s.add(fetch(i,1));
+        }
+
+        for (int i = 10923; i <= 11078; i++) {
+            s.add(fetch(i,1));
+        }
+
+        for (int i = 13474; i <= 13554; i++) {
+            s.add(fetch(i,1));
+        }
+
+        for (int i = 13595; i <= 13614; i++) {
+            s.add(fetch(i,1));
         }
         return s;
     }
 
+    //1131
     @RequestMapping("/fetchSubject4Data")
     public @ResponseBody List<String> fetchSubject4Data() {
         List<String> s = new ArrayList<>();
-        for (int i = 1537; i < 1537 + 1131; i++) {
-            s.add(fetch(i + 1,4));
+        for (int i = 1537; i <= 2740; i++) {
+            s.add(fetch(i,4));
         }
+
+        for (int i = 11079; i <= 11272; i++) {
+            s.add(fetch(i,4));
+        }
+
+        for (int i = 13556; i <= 13594; i++) {
+            s.add(fetch(i,4));
+        }
+
+        s.add(fetch(3235583970734637095L,4));
+        s.add(fetch(3235583970734637097L,4));
+        s.add(fetch(3235583970734637098L,4));
         return s;
     }
 
@@ -93,7 +123,8 @@ public class FetchDataController {
         return fetch(index,subject);
     }
 
-    private String fetch(int index,int subject) {
+    private String fetch(long index,int subject) {
+        String result = "";
         try {
             URL url = new URL(PREFIX + index);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -101,8 +132,8 @@ public class FetchDataController {
             conn.connect();
             if (conn.getResponseCode() == 200) {
                 InputStream in = conn.getInputStream();
-                String result = streamToString(in);
-                insertDatabase(result,subject);
+                 result = streamToString(in);
+                 insertDatabase(result,subject);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -110,14 +141,15 @@ public class FetchDataController {
         }
         return "success = " + index;
     }
+//    String s1 = result.replaceAll("\\\\", "");
 
     private void insertDatabase(String result, int subject) {
-        String s1 = result.replaceAll("\\\\", "");
-        Driver driver = JSON.parseObject(s1, Driver.class);
+        Driver driver = JSON.parseObject(result, Driver.class);
         int type = driver.getType();
 
         QuestionEntity s = new QuestionEntity();
         s.setId(driver.getId());
+        s.setQuestionSubject(subject);
         s.setQuestionText(driver.getQuestion());
         if (!StringUtils.isEmpty(driver.getSinaimg())) {
             s.setQuestionImg(IMAGE_PREFIX + driver.getSinaimg());
