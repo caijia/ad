@@ -1,15 +1,17 @@
 package com.caijia.ad.fetchdata.controller;
 
-
-import com.alibaba.fastjson.JSON;
-import com.caijia.ad.fetchdata.entities.*;
+import com.caijia.ad.fetchdata.entities.Question;
+import com.caijia.ad.fetchdata.entities.QuestionAnalysis;
+import com.caijia.ad.fetchdata.entities.QuestionAnswer;
 import com.caijia.ad.fetchdata.repository.AnalysisRepo;
 import com.caijia.ad.fetchdata.repository.AnswerRepo;
 import com.caijia.ad.fetchdata.repository.QuestionRepo;
 import com.caijia.ad.fetchdata.repository.QuestionTypeRepo;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -23,204 +25,138 @@ import java.util.regex.Pattern;
 public class FetchDataController {
 
     private final QuestionRepo questionRepo;
-
     private final AnalysisRepo analysisRepo;
-
     private final AnswerRepo answerRepo;
     private final QuestionTypeRepo questionTypeRepo;
 
-    private static final String PREFIX = "http://mnks.jxedt.com/get_question?r=0.5811613514581165&&index=";
-    private static final String IMAGE_PREFIX = "http://ww3.sinaimg.cn/mw600/";
-    private static final String IMAGE_PREFIX1 = "http://img.58cdn.com.cn/jxedt/img/video/";
-
     @Autowired
     public FetchDataController(QuestionRepo questionRepo, AnalysisRepo analysisRepo,
-                               AnswerRepo answerRepo,QuestionTypeRepo questionTypeRepo) {
+                               AnswerRepo answerRepo, QuestionTypeRepo questionTypeRepo) {
         this.questionRepo = questionRepo;
         this.analysisRepo = analysisRepo;
         this.answerRepo = answerRepo;
         this.questionTypeRepo = questionTypeRepo;
     }
 
-    @RequestMapping("/saveQuestionType")
-    public @ResponseBody List<String> saveQuestionType() {
-        List<String> s = new ArrayList<>();
-        readFile("subject1.txt");
-        return s;
-    }
-
-    //1330
-    @RequestMapping("/fetchSubject1Data")
-    public @ResponseBody List<String> fetchAllData() {
-        List<String> s = new ArrayList<>();
-        for (int i = 1; i <= 973; i++) {
-            s.add(fetch(i,1));
-        }
-
-        for (int i = 2541; i <= 2640; i++) {
-            s.add(fetch(i,1));
-        }
-
-        for (int i = 10923; i <= 11078; i++) {
-            s.add(fetch(i,1));
-        }
-
-        for (int i = 13474; i <= 13554; i++) {
-            s.add(fetch(i,1));
-        }
-
-        for (int i = 13595; i <= 13614; i++) {
-            s.add(fetch(i,1));
-        }
-        return s;
-    }
-
-    //1131
-    @RequestMapping("/fetchSubject4Data")
-    public @ResponseBody List<String> fetchSubject4Data() {
-        List<String> s = new ArrayList<>();
-        for (int i = 1537; i <= 2740; i++) {
-            s.add(fetch(i,4));
-        }
-
-        for (int i = 11079; i <= 11272; i++) {
-            s.add(fetch(i,4));
-        }
-
-        for (int i = 13556; i <= 13594; i++) {
-            s.add(fetch(i,4));
-        }
-
-        s.add(fetch(3235583970734637095L,4));
-        s.add(fetch(3235583970734637097L,4));
-        s.add(fetch(3235583970734637098L,4));
-        return s;
-    }
-
-    @RequestMapping("/fetchChapterType")
-    public @ResponseBody List<String> fetchChapterType() {
-        List<String> s = new ArrayList<>();
-        for (int i = 0; i < 365; i++) {
-            QuestionTypeEntity typeEntity = new QuestionTypeEntity();
-            typeEntity.setQuestionId((short) (i+1));
-            typeEntity.setQuestionType((short) 30);
-            questionTypeRepo.save(typeEntity);
-        }
-
-        for (int i = 2541; i < 2640; i++) {
-            QuestionTypeEntity typeEntity = new QuestionTypeEntity();
-            typeEntity.setQuestionId((short) (i+1));
-            typeEntity.setQuestionType((short) 30);
-            questionTypeRepo.save(typeEntity);
-        }
-
-        return s;
-    }
 
     @RequestMapping("/fetchData")
-    public @ResponseBody String fetchData(@RequestParam(value = "index") int index,
-                                          @RequestParam(value = "subject") int subject) {
-        return fetch(index,subject);
+    public @ResponseBody
+    String fetchData(@RequestParam(value = "key") String key,
+                     @RequestParam(value = "subject") int subject) {
+        return get(key, subject);
     }
 
-    private String fetch(long index,int subject) {
+    @RequestMapping("/fetchAllData")
+    public @ResponseBody
+    List<String> fetchData(@RequestParam(value = "subject") int subject) {
+        List<String> subject4 = readKeyList("subject4");
+        List<String> list = new ArrayList<>();
+        for (String s : subject4) {
+            list.add(get(s, subject));
+        }
+        return list;
+    }
+
+    private String get(String key, int subject) {
         String result = "";
         try {
-            URL url = new URL(PREFIX + index);
+            URL url = new URL(String.format("http://tiba.jsyks.com/Post/%s.htm", key));
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.connect();
             if (conn.getResponseCode() == 200) {
                 InputStream in = conn.getInputStream();
-                 result = streamToString(in);
-                 insertDatabase(result,subject);
+                result = streamToString(in).trim();
+                Pattern p = Pattern.compile("[\t\r\n]");
+                Matcher m = p.matcher(result);
+                result = m.replaceAll("");
+                insertDb(key,result, subject);
             }
         } catch (Exception e) {
             e.printStackTrace();
-            return "error = " + index;
+            return "error = " + key;
         }
-        return "success = " + index;
-    }
-//    String s1 = result.replaceAll("\\\\", "");
-
-    private void insertDatabase(String result, int subject) {
-        Driver driver = JSON.parseObject(result, Driver.class);
-        int type = driver.getType();
-
-        QuestionEntity s = new QuestionEntity();
-        s.setId(driver.getId());
-        s.setQuestionSubject(subject);
-        s.setQuestionText(driver.getQuestion());
-        if (!StringUtils.isEmpty(driver.getSinaimg())) {
-            s.setQuestionImg(IMAGE_PREFIX + driver.getSinaimg());
-
-        }else if (!StringUtils.isEmpty(driver.getImageurl())){
-            s.setQuestionImg(IMAGE_PREFIX1 + driver.getImageurl());
-        }
-
-        //分析
-        AnalysisEntity analysisEntity = new AnalysisEntity();
-        analysisEntity.setAnalysisText(driver.getBestanswer());
-        analysisEntity.setId(driver.getId());
-        s.addAnalysis(analysisEntity);
-
-        switch (type) {
-            case 3:
-            case 2: {
-                String a = driver.getA();
-                String b = driver.getB();
-                String c = driver.getC();
-                String d = driver.getD();
-                String ta = driver.getTa();
-                String[] array = {a, b, c, d};
-                saveAnswer(s, ta, array);
-                break;
-            }
-
-            case 1:{ //判断题
-                String a = "正确";
-                String b = "错误";
-                String ta = driver.getTa();
-                String[] array = {a, b};
-                saveAnswer(s, ta, array);
-                break;
-            }
-        }
-        questionRepo.save(s);
+        return "success = " + key;
     }
 
-    private void saveAnswer(QuestionEntity s, String ta, String[] array) {
-        for (int i = 0; i < array.length; i++) {
-            AnswerEntity answerEntity = new AnswerEntity();
-            answerEntity.setAnswerText(array[i]);
-            answerEntity.setIsOk((short) (ta.contains(String.valueOf(i+1)) ? 1 : 0));
+    private void insertDb(String key,String html, int subject) {
+        Pattern p = Pattern.compile("试题分析</a></span></div><div class=\"mainL\" id=\"Content\">" +
+                "<div id=\"question\" class=\"fcc\"><h1><strong>(.*?)</strong>(.*?)答案：<u>(.*?)</u>" +
+                "</h1><p><i title=\"人气指数\" id=\"ReadCount\"></i></p><b class=\"bg\">" +
+                "</b></div><style>.qxl a:hover \\{background:#36A803;color:#FFFFFF;}" +
+                "</style><div id=\"answer\" class=\"fcc\"><em>最佳分析</em><h2>(.*?)</h2>");
+        Matcher m = p.matcher(html);
+        if (m.find()) {
+            String questionText = m.group(1);
+            String answers = m.group(2);
+            String realAnswer = m.group(3);
+            String analysis = m.group(4);
+            String imgUrl = "";
+            String[] answerList;
+            if (realAnswer.equals("对") || realAnswer.equals("错")) {
+                //判断题
+                answerList = new String[2];
+                answerList[0] = "正确";
+                answerList[1] = "错误";
+
+            } else {
+                Pattern p1 = Pattern.compile("<span><img onclick=\"vExamTp\\(this\\);\" src='(.*?)'></span>");
+                Matcher matcher = p1.matcher(answers);
+                if (matcher.find()) {
+                    imgUrl = matcher.group(1);
+                    answers = answers.replace(matcher.group(0), "");
+                }
+                answers = answers.replaceAll("<b>|</b>|<br>|<br/>|A|B|C|D", "").replaceFirst("、", "");
+                answerList = answers.split("、");
+            }
+
+            //问题
+            Question q = new Question();
+            q.setQuestionSubject(subject);
+            q.setQuestionText(questionText);
+            q.setQuestionUrl(imgUrl);
+
+            //分析
+            QuestionAnalysis a = new QuestionAnalysis();
+            a.setAnalysisText(analysis);
+            q.addAnalysis(a);
+
+            //答案
+            saveAnswer(q, realAnswer, answerList);
+            questionRepo.save(q);
+        }
+    }
+
+    private void saveAnswer(Question s, String ta, String[] answers) {
+        String answer = ta.replaceAll("A", "0")
+                .replaceAll("B", "1")
+                .replaceAll("C", "2")
+                .replaceAll("D", "3");
+        for (int i = 0; i < answers.length; i++) {
+            QuestionAnswer answerEntity = new QuestionAnswer();
+            answerEntity.setAnswerText(answers[i]);
+            answerEntity.setOk(answer.contains(String.valueOf(i)) ? 1 : 0);
+            answerEntity.setAnswerOrder(i);
             s.addAnswer(answerEntity);
         }
     }
 
-    private void readFile(String filePath) {
+    private List<String> readKeyList(String filePath) {
+        List<String> keyList = new ArrayList<>();
         try {
             InputStream i = new FileInputStream(filePath);
             String content = streamToString(i);
-            String[] types = content.split("：");
-            for (int j = 0; j < types.length; j++) {
-                Pattern pattern = Pattern.compile("get_question\\?r=.*?&index=(\\d+)");
-                Matcher matcher = pattern.matcher(types[j]);
-                while (matcher.find()) {
-                    int questionId = Integer.parseInt(matcher.group(1));
-                    int type = j + 10;
-                    System.out.println("questionId = " + questionId + "--type" + type);
-                    QuestionTypeEntity typeEntity = new QuestionTypeEntity();
-                    typeEntity.setQuestionId(questionId);
-                    typeEntity.setQuestionType(type);
-                    questionTypeRepo.save(typeEntity);
-                }
-                System.out.println("-----------------------------------------");
+            Pattern pattern = Pattern.compile("(.*?).json\\?v=20171031154805.json");
+            Matcher matcher = pattern.matcher(content);
+            while (matcher.find()) {
+                String key = matcher.group(1);
+                keyList.add(key);
             }
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
+        return keyList;
     }
 
     private static String streamToString(InputStream stream) {
