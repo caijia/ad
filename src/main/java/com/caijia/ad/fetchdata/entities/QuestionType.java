@@ -1,48 +1,71 @@
 package com.caijia.ad.fetchdata.entities;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-
 import javax.persistence.*;
 import java.io.Serializable;
 import java.util.Objects;
 
 @Entity
-@Table(name = "question_type", schema = "main", catalog = "")
+@Table(name = "question_type", schema = "main")
 public class QuestionType implements Serializable {
-    private long typeId;
-    private int questionType;
-    private Question question;
+    private String typeId;
+    private Short type;
+    private Short id;
+    private String questionId;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "question_id",referencedColumnName = "_id")
-    @JsonBackReference
-    public Question getQuestion() {
-        return question;
+    @Basic
+    @Column(name = "question_id")
+    public String getQuestionId() {
+        return questionId;
     }
 
-    public void setQuestion(Question question) {
-        this.question = question;
+    public void setQuestionId(String questionId) {
+        this.questionId = questionId;
     }
 
     @Basic
-    @Column(name = "question_type")
-    public int getQuestionType() {
-        return questionType;
+    @Column(name = "type_id")
+    public String getTypeId() {
+        return typeId;
     }
 
-    public void setQuestionType(int questionType) {
-        this.questionType = questionType;
+    public void setTypeId(String typeId) {
+        this.typeId = typeId;
+    }
+
+    @Basic
+    @Column(name = "type")
+    public Short getType() {
+        return type;
+    }
+
+    public void setType(Short type) {
+        this.type = type;
     }
 
     @Id
     @Column(name = "_id")
-    @GeneratedValue
-    public long getTypeId() {
-        return typeId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    public Short getId() {
+        return id;
     }
 
-    public void setTypeId(long typeId) {
-        this.typeId = typeId;
+    public void setId(Short id) {
+        this.id = id;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        QuestionType that = (QuestionType) o;
+        return Objects.equals(typeId, that.typeId) &&
+                Objects.equals(type, that.type) &&
+                Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+
+        return Objects.hash(typeId, type, id);
+    }
 }

@@ -1,7 +1,5 @@
 package com.caijia.ad.fetchdata.entities;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-
 import javax.persistence.*;
 import java.io.Serializable;
 import java.util.Objects;
@@ -9,25 +7,16 @@ import java.util.Objects;
 @Entity
 @Table(name = "question_answer", schema = "main", catalog = "")
 public class QuestionAnswer implements Serializable {
-    private long answerId;
+    private String answerId;
     private String answerText;
-    private int answerOrder;
+    private Short id;
+    private Short answerOrder;
+    private Short answerOk;
+
     private Question question;
-    private int ok;
 
-    @Basic
-    @Column(name = "answer_ok")
-    public int getOk() {
-        return ok;
-    }
-
-    public void setOk(int ok) {
-        this.ok = ok;
-    }
-
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "question_id",referencedColumnName = "_id")
-    @JsonBackReference
+    @ManyToOne(cascade = CascadeType.ALL,fetch = FetchType.EAGER)
+    @JoinColumn(name = "question_id",referencedColumnName = "question_id")
     public Question getQuestion() {
         return question;
     }
@@ -36,14 +25,13 @@ public class QuestionAnswer implements Serializable {
         this.question = question;
     }
 
-    @Id
-    @Column(name = "_id")
-    @GeneratedValue
-    public long getAnswerId() {
+    @Basic
+    @Column(name = "answer_id")
+    public String getAnswerId() {
         return answerId;
     }
 
-    public void setAnswerId(long answerId) {
+    public void setAnswerId(String answerId) {
         this.answerId = answerId;
     }
 
@@ -57,13 +45,52 @@ public class QuestionAnswer implements Serializable {
         this.answerText = answerText;
     }
 
+    @Id
+    @Column(name = "_id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    public Short getId() {
+        return id;
+    }
+
+    public void setId(Short id) {
+        this.id = id;
+    }
+
     @Basic
     @Column(name = "answer_order")
-    public int getAnswerOrder() {
+    public Short getAnswerOrder() {
         return answerOrder;
     }
 
-    public void setAnswerOrder(int answerOrder) {
+    public void setAnswerOrder(Short answerOrder) {
         this.answerOrder = answerOrder;
+    }
+
+    @Basic
+    @Column(name = "answer_ok")
+    public Short getAnswerOk() {
+        return answerOk;
+    }
+
+    public void setAnswerOk(Short answerOk) {
+        this.answerOk = answerOk;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        QuestionAnswer that = (QuestionAnswer) o;
+        return Objects.equals(answerId, that.answerId) &&
+                Objects.equals(answerText, that.answerText) &&
+                Objects.equals(id, that.id) &&
+                Objects.equals(answerOrder, that.answerOrder) &&
+                Objects.equals(answerOk, that.answerOk);
+    }
+
+    @Override
+    public int hashCode() {
+
+        return Objects.hash(answerId, answerText, id, answerOrder, answerOk);
     }
 }

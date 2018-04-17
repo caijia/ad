@@ -1,7 +1,5 @@
 package com.caijia.ad.fetchdata.entities;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-
 import javax.persistence.*;
 import java.io.Serializable;
 import java.util.Objects;
@@ -9,14 +7,14 @@ import java.util.Objects;
 @Entity
 @Table(name = "question_analysis", schema = "main", catalog = "")
 public class QuestionAnalysis implements Serializable {
-    private long analysisId;
+    private String analysisId;
     private String analysisText;
-    private String analysisUserId;
+    private Short id;
+
     private Question question;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "question_id",referencedColumnName = "_id")
-    @JsonBackReference
+    @ManyToOne(cascade = CascadeType.ALL,fetch = FetchType.EAGER)
+    @JoinColumn(name = "question_id",referencedColumnName = "question_id")
     public Question getQuestion() {
         return question;
     }
@@ -25,14 +23,13 @@ public class QuestionAnalysis implements Serializable {
         this.question = question;
     }
 
-    @Id
-    @Column(name = "_id")
-    @GeneratedValue
-    public long getAnalysisId() {
+    @Basic
+    @Column(name = "analysis_id")
+    public String getAnalysisId() {
         return analysisId;
     }
 
-    public void setAnalysisId(long analysisId) {
+    public void setAnalysisId(String analysisId) {
         this.analysisId = analysisId;
     }
 
@@ -46,13 +43,30 @@ public class QuestionAnalysis implements Serializable {
         this.analysisText = analysisText;
     }
 
-    @Basic
-    @Column(name = "analysis_user_id")
-    public String getAnalysisUserId() {
-        return analysisUserId;
+    @Id
+    @Column(name = "_id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    public Short getId() {
+        return id;
     }
 
-    public void setAnalysisUserId(String analysisUserId) {
-        this.analysisUserId = analysisUserId;
+    public void setId(Short id) {
+        this.id = id;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        QuestionAnalysis that = (QuestionAnalysis) o;
+        return Objects.equals(analysisId, that.analysisId) &&
+                Objects.equals(analysisText, that.analysisText) &&
+                Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+
+        return Objects.hash(analysisId, analysisText, id);
     }
 }

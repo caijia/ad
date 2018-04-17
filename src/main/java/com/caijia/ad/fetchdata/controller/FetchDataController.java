@@ -3,6 +3,7 @@ package com.caijia.ad.fetchdata.controller;
 import com.caijia.ad.fetchdata.entities.Question;
 import com.caijia.ad.fetchdata.entities.QuestionAnalysis;
 import com.caijia.ad.fetchdata.entities.QuestionAnswer;
+import com.caijia.ad.fetchdata.entities.QuestionType;
 import com.caijia.ad.fetchdata.repository.AnalysisRepo;
 import com.caijia.ad.fetchdata.repository.AnswerRepo;
 import com.caijia.ad.fetchdata.repository.QuestionRepo;
@@ -38,27 +39,71 @@ public class FetchDataController {
         this.questionTypeRepo = questionTypeRepo;
     }
 
-
-    @RequestMapping("/fetchData")
+    @RequestMapping("/fetchAllData4")
     public @ResponseBody
-    String fetchData(@RequestParam(value = "key") String key,
-                     @RequestParam(value = "subject") int subject) {
-        return get(key, subject);
-    }
-
-    @RequestMapping("/fetchAllData")
-    public @ResponseBody
-    List<String> fetchData(@RequestParam(value = "subject") int subject) {
-        List<String> subject4 = readKeyList("subject4");
+    List<String> fetchAllData4() {
+        List<String> subject4 = readFileSubject("subject4");
         List<String> list = new ArrayList<>();
-        for (String s : subject4) {
-            list.add(get(s, subject));
+        for (int i = 0; i < subject4.size(); i++) {
+            list.add(get((i + 1) + "", subject4.get(i), 4));
         }
         return list;
     }
 
-    private String get(String key, int subject) {
+    @RequestMapping("/fetchAllData1")
+    public @ResponseBody
+    List<String> fetchAllData1() {
+        List<String> subject1 = readFileSubject("subject1");
+        List<String> list = new ArrayList<>();
+        for (int i = 0; i < subject1.size(); i++) {
+            list.add(get((i + 1) + "", subject1.get(i), 1));
+        }
+        return list;
+    }
+
+        @RequestMapping("/fetchData")
+    public @ResponseBody
+    String fetchData(@RequestParam(value = "key") String key) {
+        return get("", key, 1);
+    }
+
+    //shuffleOptions, question ,explain //www.jiakaobaodian.com
+    @RequestMapping("/setChapter")
+    public @ResponseBody
+    String setChapter(@RequestParam(value = "subject") int subject) {
+        switch (subject) {
+            case 1:
+                for (int i = 1; i <= 4; i++) {
+                    String fileName = "subject1chapter" + i;
+                    List<String> list = readFileSubject(fileName);
+                    for (String s : list) {
+                        QuestionType questionType = new QuestionType();
+                        questionType.setType((short) (10 + i));
+                        questionType.setQuestionId(s);
+                        questionTypeRepo.save(questionType);
+                    }
+                }
+                break;
+
+            case 4:
+                for (int i = 1; i <= 7; i++) {
+                    String fileName = "subject4chapter" + i;
+                    List<String> list = readFileSubject(fileName);
+                    for (String s : list) {
+                        QuestionType questionType = new QuestionType();
+                        questionType.setType((short) (40 + i));
+                        questionType.setQuestionId(s);
+                        questionTypeRepo.save(questionType);
+                    }
+                }
+                break;
+        }
+        return "saved";
+    }
+
+    private String get(String index, String key, int subject) {
         String result = "";
+        String msg = "error = " + key + "--index = " + index;
         try {
             URL url = new URL(String.format("http://tiba.jsyks.com/Post/%s.htm", key));
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -70,27 +115,27 @@ public class FetchDataController {
                 Pattern p = Pattern.compile("[\t\r\n]");
                 Matcher m = p.matcher(result);
                 result = m.replaceAll("");
-                insertDb(key,result, subject);
+                boolean b = insertDb(key, result, subject);
+                msg = (b ? "success = " : "error = ") + key + "--index = " + index;
             }
         } catch (Exception e) {
             e.printStackTrace();
-            return "error = " + key;
         }
-        return "success = " + key;
+        return msg;
     }
 
-    private void insertDb(String key,String html, int subject) {
+    private boolean insertDb(String key, String html, int subject) {
         Pattern p = Pattern.compile("试题分析</a></span></div><div class=\"mainL\" id=\"Content\">" +
                 "<div id=\"question\" class=\"fcc\"><h1><strong>(.*?)</strong>(.*?)答案：<u>(.*?)</u>" +
                 "</h1><p><i title=\"人气指数\" id=\"ReadCount\"></i></p><b class=\"bg\">" +
                 "</b></div><style>.qxl a:hover \\{background:#36A803;color:#FFFFFF;}" +
-                "</style><div id=\"answer\" class=\"fcc\"><em>最佳分析</em><h2>(.*?)</h2>");
+                "</style>(<div id=\"answer\" class=\"fcc\"><em>最佳分析</em><h2>(.*?)</h2>|.*?)");
         Matcher m = p.matcher(html);
         if (m.find()) {
             String questionText = m.group(1);
             String answers = m.group(2);
             String realAnswer = m.group(3);
-            String analysis = m.group(4);
+            String analysis = m.group(5);
             String imgUrl = "";
             String[] answerList;
             if (realAnswer.equals("对") || realAnswer.equals("错")) {
@@ -112,7 +157,8 @@ public class FetchDataController {
 
             //问题
             Question q = new Question();
-            q.setQuestionSubject(subject);
+            q.setQuestionId(key);
+            q.setQuestionSubject((short) subject);
             q.setQuestionText(questionText);
             q.setQuestionUrl(imgUrl);
 
@@ -124,7 +170,9 @@ public class FetchDataController {
             //答案
             saveAnswer(q, realAnswer, answerList);
             questionRepo.save(q);
+            return true;
         }
+        return false;
     }
 
     private void saveAnswer(Question s, String ta, String[] answers) {
@@ -135,18 +183,18 @@ public class FetchDataController {
         for (int i = 0; i < answers.length; i++) {
             QuestionAnswer answerEntity = new QuestionAnswer();
             answerEntity.setAnswerText(answers[i]);
-            answerEntity.setOk(answer.contains(String.valueOf(i)) ? 1 : 0);
-            answerEntity.setAnswerOrder(i);
+            answerEntity.setAnswerOk((short) (answer.contains(String.valueOf(i)) ? 1 : 0));
+            answerEntity.setAnswerOrder((short) i);
             s.addAnswer(answerEntity);
         }
     }
 
-    private List<String> readKeyList(String filePath) {
+    private List<String> readFileSubject(String filePath) {
         List<String> keyList = new ArrayList<>();
         try {
             InputStream i = new FileInputStream(filePath);
             String content = streamToString(i);
-            Pattern pattern = Pattern.compile("(.*?).json\\?v=20171031154805.json");
+            Pattern pattern = Pattern.compile("curl 'http://www.jsyks.com/ExamData/(.*?).json\\?v=20171031154805.json'");
             Matcher matcher = pattern.matcher(content);
             while (matcher.find()) {
                 String key = matcher.group(1);
