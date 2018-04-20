@@ -11,6 +11,17 @@ public class QuestionType implements Serializable {
     private Short type;
     private Short id;
     private String questionId;
+    private int childType;
+
+    @Basic
+    @Column(name = "child_type")
+    public int getChildType() {
+        return childType;
+    }
+
+    public void setChildType(int childType) {
+        this.childType = childType;
+    }
 
     @Basic
     @Column(name = "question_id")

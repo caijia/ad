@@ -2,10 +2,7 @@ package com.caijia.ad.fetchdata.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
-import com.caijia.ad.fetchdata.entities.FetchAnswer;
-import com.caijia.ad.fetchdata.entities.Question;
-import com.caijia.ad.fetchdata.entities.QuestionAnalysis;
-import com.caijia.ad.fetchdata.entities.QuestionAnswer;
+import com.caijia.ad.fetchdata.entities.*;
 import com.caijia.ad.fetchdata.repository.AnalysisRepo;
 import com.caijia.ad.fetchdata.repository.AnswerRepo;
 import com.caijia.ad.fetchdata.repository.QuestionRepo;
@@ -44,22 +41,66 @@ public class FetchDataController2 {
         this.questionTypeRepo = questionTypeRepo;
     }
 
-    public static void main(String[] args) {
-        String html1 = "{\\\"answer\\\":128,\\\"chapterId\\\":124,\\\"difficulty\\\":3,\\\"explain\\\":\\\"<p>电喷车是指装备电子控制燃油喷射系统的车辆。对于电喷车，下坡挂空挡并不能使油耗下降，反而会失去发动机制动能力。</p>\\\",\\\"id\\\":32957,\\\"label\\\":\\\"4.1.1.115\\\",\\\"mediaHeight\\\":0,\\\"mediaType\\\":0,\\\"mediaWidth\\\":0,\\\"optionType\\\":1,\\\"question\\\":\\\"长下坡禁止挂空挡，下列原因错误的是？\\\",\\\"questionId\\\":1160900,\\\"falseCount\\\":41181910,\\\"trueCount\\\":144828486,\\\"wrongRate\\\":0.22139574392390413,\\\"options\\\":[\\\"长下坡挂低速挡可以借助发动机控制车速\\\",\\\"避免因刹车失灵发生危险\\\",\\\"长下坡空挡滑行导致车速过高时，难以抢挂低速档控制车速\\\",\\\"下坡挂空挡，油耗容易增多\\\"],\\\"factAnswer\\\":[128],\\\"shuffleOptions\\\":[{\\\"answer\\\":64,\\\"label\\\":\\\"长下坡空挡滑行导致车速过高时，难以抢挂低速档控制车速\\\",\\\"isRight\\\":false},{\\\"answer\\\":32,\\\"label\\\":\\\"避免因刹车失灵发生危险\\\",\\\"isRight\\\":false},{\\\"answer\\\":128,\\\"label\\\":\\\"下坡挂空挡，油耗容易增多\\\",\\\"isRight\\\":true},{\\\"answer\\\":16,\\\"label\\\":\\\"长下坡挂低速挡可以借助发动机控制车速\\\",\\\"isRight\\\":false}],\\\"shuffleOptionsMap\\\":\\\"64,32,128,16\\\"";
-        String html = "\\\"difficulty\\\":3,\\\"explain\\\":\\\"<p>有3种违法行为：<br/>1、打电话<br/>2、不系安全带<br/>3、遇前方拥堵走应急车道</p>\\\",\\\"id\\\":18752,\\\"label\\\":\\\"7.1.1.6\\\",\\\"mediaHeight\\\":285,\\\"mediaType\\\":2,\\\"mediaWidth\\\":350,\\\"optionType\\\":1,\\\"question\\\":\\\"动画6中有几种违法行为？\\\",\\\"questionId\\\":910300,\\\"mediaContent\\\":\\\"http://file.open.jiakaobaodian.com/tiku/res/910300.mp4\\\",\\\"falseCount\\\":46722986,\\\"trueCount\\\":241210631,\\\"wrongRate\\\":0.16226999294771474,\\\"options\\\":[\\\"一种违法行为\\\",\\\"二种违法行为\\\",\\\"三种违法行为\\\",\\\"四种违法行为\\\"],\\\"parseWidth\\\":299,\\\"parseHeight\\\":244,\\\"factAnswer\\\":[64],\\\"shuffleOptions\\\":[{\\\"answer\\\":64,\\\"label\\\":\\\"三种违法行为\\\",\\\"isRight\\\":true},{\\\"answer\\\":128,\\\"label\\\":\\\"四种违法行为\\\",\\\"isRight\\\":false},{\\\"answer\\\":32,\\\"label\\\":\\\"二种违法行为\\\",\\\"isRight\\\":false},{\\\"answer\\\":16,\\\"label\\\":\\\"一种违法行为\\\",\\\"isRight\\\":false}],\\\"shuffleOptionsMap\\\":\\\"64,128,32,16\\\",\\\"factAnswerLabel\\\":[\\\"A\\\"]},\\\"errorCode\\\":0,\\\"message\\\":null,\\\"success\\\":true}";
-        Pattern p = Pattern.compile("\\\\\"explain\\\\\":\\\\\"(.*?)\\\\\",.*?" +
-                "\\\\\"question\\\\\":\\\\\"(.*?)\\\\\"," +
-                "(.*?\\\\\"mediaContent\\\\\":\\\\\"(.*?)\\\\\",.*?|.*?)" +
-                "\\\\\"shuffleOptions\\\\\":(.*),\\\\\"shuffleOptionsMap");
-        Matcher m = p.matcher(html1);
-        if (m.find()) {
-            System.out.println(m.group(3));
-            System.out.println(m.group(4));
+    @RequestMapping("/setQuestionType")
+    public @ResponseBody
+    List<String> setQuestionType(@RequestParam(value = "subject") int subject) {
+        String filePath = String.format("subject%dspecial.json", subject);
+        List<String> list = new ArrayList<>();
+        try {
+            InputStream i = new FileInputStream(filePath);
+            String content = streamToString(i);
+            JSONArray array = JSON.parseArray(content);
+            int size = array.size();
+            for (int j = 0; j < size; j++) {//parent type
+                JSONArray jsonArray = array.getJSONArray(j);
+                int size1 = jsonArray.size();
+                for (int k = 0; k < size1; k++) { //child type
+                    JSONArray jsonArray1 = jsonArray.getJSONArray(k);
+                    int size2 = jsonArray1.size();
+                    for (int l = 0; l < size2; l++) {
+                        int questionId = jsonArray1.getIntValue(l);
+                        QuestionType questionType = new QuestionType();
+                        questionType.setType((short) (subject * 1000 + j));
+                        questionType.setQuestionId(questionId + "");
+                        questionType.setChildType(subject * 1000 + j * 100 + k);
+                        questionTypeRepo.save(questionType);
+                        list.add("success questionId = " + questionId);
+                    }
+                }
+            }
 
-
-        } else {
-            System.out.println("no find");
+        } catch (Exception e) {
+            e.printStackTrace();
+            list.add("error questionId = ");
         }
+        return list;
+    }
+
+    @RequestMapping("/setQuestionChapter")
+    public @ResponseBody
+    List<String> setQuestionChapter(@RequestParam(value = "subject") int subject) {
+        String filePath = String.format("subject%dchapter.json", subject);
+        List<String> list = new ArrayList<>();
+        try {
+            InputStream i = new FileInputStream(filePath);
+            String content = streamToString(i);
+            JSONArray array = JSON.parseArray(content);
+            int size = array.size();
+            for (int j = 0; j < size; j++) {
+                JSONArray jsonArray = array.getJSONArray(j);
+                int size1 = jsonArray.size();
+                for (int k = 0; k < size1; k++) {
+                    int questionId = jsonArray.getIntValue(k);
+                    questionRepo.updateQuestionChapter(subject * 100 + j, questionId + "", subject);
+                    list.add("success questionId = " + questionId);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            list.add("error questionId = ");
+        }
+        return list;
     }
 
     @RequestMapping("/jkfetchAllData4")
