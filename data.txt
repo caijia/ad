@@ -1,100 +1,107 @@
-小车： 科目一：1-973,2541-2640,10923-11078,13474-13554,13595-13614
-      科目四：1537-2336,2641-2740,11079-11272,13556-13594，3235583970734637095，3235583970734637097，3235583970734637098
-
-客车： 科目一：1-1025，2541-2640,9699-9709,13474-13554
-      科目四：4096-5118,9698,13556-13586
-
-货车： 科目一：1-973,1026-1091,2541-2640,9710-9714,13474-13554
-      科目四：4096-5118,9698,13556-13586
-
-
-
-
-
-
 -- 判断题
 select a.question_id
-from answer a, question q
+from question_answer a, question q
 where a.question_id = q._id
 group by a.question_id
 having count(a.answer_text) = 2;
 
-insert into question_type (question_id, question_type)
+insert into question_type (question_id, type)
   select
     q._id,
     1
-  from answer a, question q
+  from question_answer a, question q
   where a.question_id = q._id
   group by a.question_id
   having count(a.answer_text) = 2;
 
 -- 文字题
 -- delete from question_type;
-insert into question_type (question_id, question_type) select
+insert into question_type (question_id, type) select
                                                          _id,
                                                          2
                                                        from question
-                                                       where question_img is null or question_img = '';
-insert into question_type (question_id, question_type) values ((select _id
+                                                       where question_url is null or question_url = '';
+insert into question_type (question_id, type) values ((select _id
                                                                 from question
-                                                                where question_img is null or question_img = ''), 2);
+                                                                where question_url is null or question_url = ''), 2);
 
 -- 图片题
 select *
 from question
-where question_img is not null or question_img != '';
-insert into question_type (question_id, question_type) select
+where question_url is not null and question_url != '';
+insert into question_type (question_id, type) select
                                                          _id,
                                                          3
                                                        from question
-                                                       where question_img is not null or question_img != '';
+                                                       where question_url is not null and question_url != '';
 
 -- 单选题
 select a.question_id
-from answer a, question q
+from question_answer a, question q
 where a.question_id = q._id
 group by a.question_id
-having sum(a.is_ok) <= 1 and count(a.answer_text) = 4;
+having sum(a.answer_ok) <= 1 and count(a.answer_text) = 4;
 
-insert into question_type (question_id, question_type)
+insert into question_type (question_id, type)
   select
     q._id,
     4
-  from answer a, question q
+  from question_answer a, question q
   where a.question_id = q._id
   group by a.question_id
-  having sum(a.is_ok) <= 1 and count(a.answer_text) = 4;
+  having sum(a.answer_ok) <= 1 and count(a.answer_text) = 4;
 
 -- 多选题
 select a.question_id
-from answer a, question q
+from question_answer a, question q
 where a.question_id = q._id
 group by a.question_id
-having sum(a.is_ok) > 1 and count(a.answer_text) = 4;
+having sum(a.answer_ok) > 1 and count(a.answer_text) = 4;
 
-insert into question_type (question_id, question_type)
+insert into question_type (question_id, type)
   select
     q._id,
     5
-  from answer a, question q
+  from question_answer a, question q
   where a.question_id = q._id
   group by a.question_id
-  having sum(a.is_ok) > 1 and count(a.answer_text) = 4;
+  having sum(a.answer_ok) > 1 and count(a.answer_text) = 4;
 
--- delete from analysis;
--- delete from question;
--- delete from answer;
--- delete from question_type;
-select answer_text from question q, answer a where a.question_id=q._id and q._id = 92;
+delete from question_analysis;
+delete from question;
+delete from question_answer;
+delete from question_type;
+select answer_text from question q, question_answer a where a.question_id=q._id and q._id = 92;
 -- 根据类型分组
 select
-  qt.question_type,
+  qt.type,
   count(*) as type_count
 from question q, question_type qt
-group by question_type order by question_type asc ;
+group by question_subject order by question_subject asc ;
+
+-- update question set question_subject = 1;
+select count(*) from question where question_subject = 4;
+select * from question where question_text is null or question_text = '' and question_subject = 4;
 
 -- delete from question_type;
-select * from question_type where question_type = 20;
-select * from question_type where question_type = 15 group by question_id having count(question_id) > 1;
+select * from question_type where type = 20;
+select * from question_type where type = 15 group by question_id having count(question_id) > 1;
 
+select * from question_answer a,question q where q._id = a.question_id and q._id = 1 order by answer_order;
+
+select count(*)
+from question where question_url like '%.gif';
+select count(*) from question where question_subject = 4;
+select count(*) from question where question_subject = 1;
+select count(*) from question_type group by type;
+select * from question q,question_analysis a where a.question_id = q.question_id and analysis_text is null;
+
+update question_analysis set analysis_text = replace(analysis_text,'<p">','');
+update question_analysis set analysis_text = replace(analysis_text,'</p">','');
+update question_analysis set analysis_text = replace(analysis_text,'<span style=\\\"font-size: 16px;\\\">','');
+update question_analysis set analysis_text = replace(analysis_text,'</span>','');
+
+select count(*) from question group by question_chapter having question_subject = 1;
+select child_type from question_type qt,question q where qt.question_id = q.question_id;
+select count(*) from question_type qt,question q where qt.question_id = q.question_id group by child_type having question_subject = 4;
 
